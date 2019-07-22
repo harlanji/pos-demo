@@ -1,6 +1,9 @@
 (ns pos-demo.core
+    (:require-macros [cljs.core.async.macros :refer [go]])
     (:require [reagent.core :as reagent :refer [atom]]
-              [cljs.reader :refer [read-string]]))
+              [cljs.reader :refer [read-string]]
+              [cljs-http.client :as http]
+              [cljs.core.async :as async]))
 
 (enable-console-print!)
 
@@ -34,6 +37,14 @@
         (swap! app-state assoc :active-order order)))
     ))
 
+(defn ping-api
+  []
+  (go
+    (let [api-response (async/<! (http/get "/api"))]
+      (if (= (:status api-response) 200)
+        (js/alert (str "Oh, hey. Works: " (:body api-response)))
+        (js/alert (str "No good :( " (:status api-response)))))))
+
 ; UI handlers
 
 (defn new-order-clicked
@@ -51,6 +62,10 @@
 (defn load-order-clicked
   []
   (load-order))
+  
+(defn ping-api-clicked
+  []
+  (ping-api))
 
 
 ; UI
@@ -72,6 +87,7 @@
 (defn main-screen []
   [:div
    [:h1 (:shop-name @app-state)]
+   (button "Ping API" ping-api-clicked)
    (when (nil? (:active-order @app-state))
      [:span 
        (button "New Order" new-order-clicked)

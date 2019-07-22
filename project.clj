@@ -4,12 +4,15 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :min-lein-version "2.9.1"
+  ;:min-lein-version "2.9.1"
 
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/clojurescript "1.10.520"]
                  [org.clojure/core.async  "0.4.500"]
-                 [reagent "0.8.1"]]
+                 [reagent "0.8.1"]
+                 [ring "1.7.1"]
+                 [cljs-http "0.1.46"]
+                 [org.clojure/core.async "0.4.500"]]
 
   :plugins [[lein-figwheel "0.5.19"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
@@ -63,7 +66,7 @@
 
              ;; doesn't work for you just run your own server :) (see lein-ring)
 
-             ;; :ring-handler hello_world.server/handler
+             :ring-handler pos-demo.core/web-handler
 
              ;; To be able to open files in your editor from the heads up display
              ;; you will need to put a script on your path.
