@@ -68,6 +68,60 @@
   (ping-api))
 
 
+
+
+(defrecord Menu
+  [sections])
+
+(defrecord MenuSection
+  [title items])
+
+(defrecord MenuItem
+  [title price description calories ingredients])
+
+(defrecord Ingredient
+  [title price calories])
+
+(defrecord MenuItemIngredient
+  [ingredient amount description])
+
+
+
+(def menu (atom (map->Menu {:sections [
+  (map->MenuSection {:title "Salads" :items [
+    (map->MenuItem {:title "Caesar" :description "" :ingredients [
+      (map->MenuItemIngredient {:ingredient "Kale" :amount 1.2 :description "The leafy green ingredient."})
+      (map->MenuItemIngredient {:ingredient "Caesar Dressing" :amount 1 :description "Creamy dressing."})
+      (map->MenuItemIngredient {:ingredient "Bacon" :amount 0.4 :description "Adds crunch and salty flavor."})
+      ]})
+    ]})
+  (map->MenuSection {:title "Sandos" :items [
+    (map->MenuItem {:title "Grilled Cheese" :description "" :ingredients [
+    	(map->MenuItemIngredient {:ingredient "Bread" :amount 2 :description "White Bread for the sando."})
+    	(map->MenuItemIngredient {:ingredient "Cheese" :amount 1 :description "American Singles, baby."})
+    	(map->MenuItemIngredient {:ingredient "Butter" :amount 0.25 :description "Bread is buttered before grilling."})
+    	
+      ]})
+    (map->MenuItem {:title "PB & J" :description "" :ingredients [
+    	(map->MenuItemIngredient {:ingredient "Bread" :amount 2 :description "White Bread for the sando."})
+    	(map->MenuItemIngredient {:ingredient "Peanut Butter" :amount 0.25 :description "Crunchy roasted peanut butter."})
+    	(map->MenuItemIngredient {:ingredient "Grape Preserves" :amount 0.25 :description "Concord grape preserves."})
+    	
+      ]})
+    ]})
+  ]})))
+
+
+(defrecord Order
+  [])
+  
+  
+(defrecord OrderItem
+  [])
+
+
+
+
 ; UI
 
 (defn button
@@ -84,6 +138,25 @@
 
 
 
+(defn menu-section-ui
+  [section]
+  )
+
+(defn menu-ui
+  [menu]
+  ; tabs with section titles
+  ; each section has the menu items
+  ; the item can have ingredients removed, added, put on the side. ingredients from this or any item.
+  ; there can be types of ingredients like sauces and patties.
+  (for [section (:sections menu)]
+    [:div (:title section)
+      (for [item (:items section)]  
+        [button (:title item) #(js/alert "Hey.")]
+          )]))
+
+
+
+
 (defn main-screen []
   [:div
    [:h1 (:shop-name @app-state)]
@@ -96,6 +169,7 @@
      [:span
        (button "Save Order" save-order-clicked)
        (button "Abandon Order" abandon-order-clicked)])
+   (menu-ui @menu)
    ])
 
 
