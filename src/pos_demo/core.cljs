@@ -13,13 +13,37 @@
 
 ; model
 
+
+; rules translate requests into items. Some requests will have no effect on the order.
+
+(defrecord OrderItemIngredientModification
+  [ingredient operation])
+
+(defrecord OrderItemOption
+  [])
+
+(defrecord OrderItem
+  [order menu-item ingredient-mods options])
+
+(defrecord Order
+  [id])  
+
+
+(defrecord OrderRequest
+  [order description])
+  
+
+; when there is an order for a requests for a menu item
+;      and we have the menu item,
+;      add the item to the order
+
 (defn current-date
   []
   (js/Date.))
 
 (defn new-order
   []
-  (swap! app-state assoc :active-order {:id (str (current-date)) :requests []}))
+  (swap! app-state assoc :active-order {:id (str (current-date))}))
 
 (defn abandon-order
   []
@@ -68,22 +92,21 @@
   (ping-api))
 
 
+(defrecord Ingredient
+  [title price calories])
 
 
 (defrecord Menu
   [sections])
 
 (defrecord MenuSection
-  [title items])
+  [menu title items])
 
 (defrecord MenuItem
-  [title price description calories ingredients])
-
-(defrecord Ingredient
-  [title price calories])
+  [menu-section title price description calories ingredients])
 
 (defrecord MenuItemIngredient
-  [ingredient amount description])
+  [menu-item ingredient amount description])
 
 
 
@@ -112,12 +135,35 @@
   ]})))
 
 
-(defrecord Order
-  [])
-  
-  
-(defrecord OrderItem
-  [])
+
+(def menu2 (atom (let [m (map->Menu {})
+                       salads  (map->MenuSection {:menu m :title "Salads"})
+                       caesar (map->MenuItem {:menu-section salads :title "Caesar" :description ""})
+                       sandos (map->MenuSection {:title "Sandos"})
+                       grilled-cheese (map->MenuItem {:menu-section sandos :title "Grilled Cheese" :description ""})
+                       pb-and-j (map->MenuItem {:menu-section sandos :title "PB & J" :description ""})
+                       ]
+             [m salads caesar 
+    
+      (map->MenuItemIngredient {:menu-item caesar :ingredient "Kale" :amount 1.2 :description "The leafy green ingredient."})
+      (map->MenuItemIngredient {:menu-item caesar :ingredient "Caesar Dressing" :amount 1 :description "Creamy dressing."})
+      (map->MenuItemIngredient {:menu-item caesar :ingredient "Bacon" :amount 0.4 :description "Adds crunch and salty flavor."})
+      
+    
+  sandos
+    grilled-cheese
+    
+    	(map->MenuItemIngredient {:menu-item grilled-cheese :ingredient "Bread" :amount 2 :description "White Bread for the sando."})
+    	(map->MenuItemIngredient {:menu-item grilled-cheese :ingredient "Cheese" :amount 1 :description "American Singles, baby."})
+    	(map->MenuItemIngredient {:menu-item grilled-cheese :ingredient "Butter" :amount 0.25 :description "Bread is buttered before grilling."})
+    	
+    pb-and-j
+    
+    	(map->MenuItemIngredient {:menu-item pb-and-j :ingredient "Bread" :amount 2 :description "White Bread for the sando."})
+    	(map->MenuItemIngredient {:menu-item pb-and-j :ingredient "Peanut Butter" :amount 0.25 :description "Crunchy roasted peanut butter."})
+    	(map->MenuItemIngredient {:menu-item pb-and-j :ingredient "Grape Preserves" :amount 0.25 :description "Concord grape preserves."})
+    	
+  ])))
 
 
 
@@ -155,6 +201,13 @@
           )]))
 
 
+
+(defn order-ui
+  [order]
+  [:ul 
+    (for [item (:items order)]
+      [:li (:title item) [:span.price (:price item)]]
+      )])
 
 
 (defn main-screen []
