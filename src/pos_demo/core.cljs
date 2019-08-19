@@ -33,6 +33,12 @@
   [order description])
   
 
+;(defrule add-any-requested-item
+;  [OrderRequest order-request ()]
+;  =>
+;  ()
+;  )
+
 ; when there is an order for a requests for a menu item
 ;      and we have the menu item,
 ;      add the item to the order
@@ -43,7 +49,7 @@
 
 (defn new-order
   []
-  (swap! app-state assoc :active-order {:id (str (current-date))}))
+  (swap! app-state assoc :active-order {:id (str (current-date)) :items []}))
 
 (defn abandon-order
   []
@@ -112,20 +118,20 @@
 
 (def menu (atom (map->Menu {:sections [
   (map->MenuSection {:title "Salads" :items [
-    (map->MenuItem {:title "Caesar" :description "" :ingredients [
+    (map->MenuItem {:title "Caesar" :description "" :price "11.95" :ingredients [
       (map->MenuItemIngredient {:ingredient "Kale" :amount 1.2 :description "The leafy green ingredient."})
       (map->MenuItemIngredient {:ingredient "Caesar Dressing" :amount 1 :description "Creamy dressing."})
       (map->MenuItemIngredient {:ingredient "Bacon" :amount 0.4 :description "Adds crunch and salty flavor."})
       ]})
     ]})
   (map->MenuSection {:title "Sandos" :items [
-    (map->MenuItem {:title "Grilled Cheese" :description "" :ingredients [
+    (map->MenuItem {:title "Grilled Cheese" :description ""  :price "8.95" :ingredients [
     	(map->MenuItemIngredient {:ingredient "Bread" :amount 2 :description "White Bread for the sando."})
     	(map->MenuItemIngredient {:ingredient "Cheese" :amount 1 :description "American Singles, baby."})
     	(map->MenuItemIngredient {:ingredient "Butter" :amount 0.25 :description "Bread is buttered before grilling."})
     	
       ]})
-    (map->MenuItem {:title "PB & J" :description "" :ingredients [
+    (map->MenuItem {:title "PB & J" :description "" :price "6.95" :ingredients [
     	(map->MenuItemIngredient {:ingredient "Bread" :amount 2 :description "White Bread for the sando."})
     	(map->MenuItemIngredient {:ingredient "Peanut Butter" :amount 0.25 :description "Crunchy roasted peanut butter."})
     	(map->MenuItemIngredient {:ingredient "Grape Preserves" :amount 0.25 :description "Concord grape preserves."})
@@ -138,10 +144,10 @@
 
 (def menu2 (atom (let [m (map->Menu {})
                        salads  (map->MenuSection {:menu m :title "Salads"})
-                       caesar (map->MenuItem {:menu-section salads :title "Caesar" :description ""})
+                       caesar (map->MenuItem {:menu-section salads :title "Caesar" :description "" :price "11.95"})
                        sandos (map->MenuSection {:title "Sandos"})
-                       grilled-cheese (map->MenuItem {:menu-section sandos :title "Grilled Cheese" :description ""})
-                       pb-and-j (map->MenuItem {:menu-section sandos :title "PB & J" :description ""})
+                       grilled-cheese (map->MenuItem {:menu-section sandos :title "Grilled Cheese" :description "" :price "8.95"})
+                       pb-and-j (map->MenuItem {:menu-section sandos :title "PB & J" :description "" :price "6.95"})
                        ]
              [m salads caesar 
     
@@ -188,6 +194,11 @@
   [section]
   )
 
+(defn add-menu-item-to-order
+  [menu-item]
+  (swap! app-state update-in [:active-order :items] conj (select-keys menu-item [:title :price]))
+  )
+
 (defn menu-ui
   [menu]
   ; tabs with section titles
@@ -197,7 +208,7 @@
   (for [section (:sections menu)]
     [:div (:title section)
       (for [item (:items section)]  
-        [button (:title item) #(js/alert "Hey.")]
+        [button (:title item) #(add-menu-item-to-order item)]
           )]))
 
 
@@ -213,16 +224,25 @@
 (defn main-screen []
   [:div
    [:h1 (:shop-name @app-state)]
-   (button "Ping API" ping-api-clicked)
+   
    (when (nil? (:active-order @app-state))
      [:span 
        (button "New Order" new-order-clicked)
        (button "Resume Order" load-order-clicked)])
    (when-not (nil? (:active-order @app-state))
-     [:span
-       (button "Save Order" save-order-clicked)
-       (button "Abandon Order" abandon-order-clicked)])
-   (menu-ui @menu)
+     [:div
+       (menu-ui @menu)
+       [:hr]
+       (order-ui (:active-order @app-state))
+       [:hr]
+       [:span
+         (button "Save Order" save-order-clicked)
+         (button "Abandon Order" abandon-order-clicked)]
+                
+         ])
+    (button "Ping API" ping-api-clicked)
+   
+   
    ])
 
 
