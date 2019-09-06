@@ -3,7 +3,14 @@
                  org.clojure/core.async {:mvn/version  "0.4.500"}
                  reagent {:mvn/version "0.8.1"}
                  ;ring {:mvn/version "1.7.1"}
-                 cljs-http {:mvn/version "0.1.46"}}        
+                 cljs-http {:mvn/version "0.1.46"}
+                 
+                 javax.xml.bind/jaxb-api {:mvn/version "2.3.0"}
+                 org.glassfish.jaxb/jaxb-runtime {:mvn/version "2.3.1"}
+                 net.authorize/anet-java-sdk {:mvn/version "LATEST"}
+                 log4j {:mvn/version "1.2.17"}
+                 
+                 }        
         
  :paths ["src" "resources"]
  :aliases {:fig {:extra-deps

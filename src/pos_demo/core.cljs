@@ -8,7 +8,8 @@
 (enable-console-print!)
 
 (defonce app-state (atom {:shop-name "Hola world!"
-                          :active-order nil}))
+                          :active-order nil
+                          :payment-amount "0.00"}))
 
 
 ; model
@@ -75,6 +76,17 @@
         (js/alert (str "Oh, hey. Works: " (:body api-response)))
         (js/alert (str "No good :( " (:status api-response)))))))
 
+(defn pay-api
+  [amount]
+  (go
+    (let [params {:amount amount
+                  :card-number "4111111111111111"
+                  :card-exp "1022"}
+          api-response (async/<! (http/get "/pay" {:query-params params}))]
+      (if (= (:status api-response) 200)
+        (js/alert (str "Message: " (:body api-response)))
+        (js/alert (str "No good :( " (:status api-response)))))))
+
 ; UI handlers
 
 (defn new-order-clicked
@@ -97,6 +109,10 @@
   []
   (ping-api))
 
+
+(defn pay-clicked
+  [amount]
+  (pay-api amount))
 
 (defrecord Ingredient
   [title price calories])
@@ -242,7 +258,12 @@
          ])
     (button "Ping API" ping-api-clicked)
    
-   
+    [:div
+      [:input#payment-amount {:type "text"
+                              :value (:payment-amount @app-state)
+                              :on-change #(swap! app-state assoc :payment-amount (-> % .-target .-value))}]
+      (button "Pay" #(pay-clicked (:payment-amount @app-state)))
+      ]
    ])
 
 
