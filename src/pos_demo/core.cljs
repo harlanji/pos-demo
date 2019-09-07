@@ -3,7 +3,8 @@
     (:require [reagent.core :as reagent :refer [atom]]
               [cljs.reader :refer [read-string]]
               [cljs-http.client :as http]
-              [cljs.core.async :as async]))
+              [cljs.core.async :as async]
+              [decimal.core :as decimal]))
 
 (enable-console-print!)
 
@@ -33,6 +34,14 @@
 (defrecord OrderRequest
   [order description])
   
+  
+
+(defn order-total [order]
+  (let [item-prices (map :price (:items order))
+        total-price (reduce (fn [total item-price] (decimal/+ total item-price))
+                            "0.00"
+                            item-prices)]
+    total-price))
 
 ;(defrule add-any-requested-item
 ;  [OrderRequest order-request ()]
@@ -54,7 +63,8 @@
 
 (defn abandon-order
   []
-  (swap! app-state assoc :active-order nil))
+  (swap! app-state assoc :active-order nil)
+  (swap! app-state assoc :payment-amount "0.00"))
 
 (defn save-order
   []
@@ -65,7 +75,8 @@
   (let [order-edn (js/prompt "Paste the saved text.")]
     (when-let [order (read-string order-edn)]
       (when (map? order)
-        (swap! app-state assoc :active-order order)))
+        (swap! app-state assoc :active-order order)
+        (swap! app-state assoc :payment-amount (str (order-total order)))))
     ))
 
 (defn ping-api
@@ -190,6 +201,7 @@
 
 
 
+
 ; UI
 
 (defn button
@@ -213,6 +225,7 @@
 (defn add-menu-item-to-order
   [menu-item]
   (swap! app-state update-in [:active-order :items] conj (select-keys menu-item [:title :price]))
+  (swap! app-state assoc :payment-amount (str (order-total (:active-order @app-state))))
   )
 
 (defn menu-ui
@@ -231,10 +244,16 @@
 
 (defn order-ui
   [order]
+  
+  [:div 
   [:ul 
     (for [item (:items order)]
       [:li (:title item) [:span.price (:price item)]]
-      )])
+      )]
+  
+    [:div
+      [:strong "Total Price"]
+      [:span (str (order-total order))]]])
 
 
 (defn main-screen []
@@ -262,6 +281,7 @@
       [:input#payment-amount {:type "text"
                               :value (:payment-amount @app-state)
                               :on-change #(swap! app-state assoc :payment-amount (-> % .-target .-value))}]
+                              
       (button "Pay" #(pay-clicked (:payment-amount @app-state)))
       ]
    ])
