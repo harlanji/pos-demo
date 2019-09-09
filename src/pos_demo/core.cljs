@@ -38,7 +38,7 @@
 
 (defn order-total [order]
   (let [item-prices (map :price (:items order))
-        total-price (reduce (fn [total item-price] (decimal/+ total item-price))
+        total-price (reduce decimal/+
                             "0.00"
                             item-prices)]
     total-price))
@@ -96,6 +96,23 @@
           api-response (async/<! (http/get "/pay" {:query-params params}))]
       (if (= (:status api-response) 200)
         (js/alert (str "Message: " (:body api-response)))
+        (js/alert (str "No good :( " (:status api-response)))))))
+
+
+(defn auth-api
+  [username password]
+  (go
+    (let [params {:username username
+                  :password password}
+          api-response (async/<! (http/get "/auth" {:query-params params}))]
+      (cond 
+        (= (:status api-response) 200)
+        (js/alert (str "Message: " (:body api-response)))
+        
+        (= (:status api-response) 401)
+        (js/alert (str "Invalid login: " (:body api-response)))
+        
+        :else
         (js/alert (str "No good :( " (:status api-response)))))))
 
 ; UI handlers
@@ -228,6 +245,26 @@
   (swap! app-state assoc :payment-amount (str (order-total (:active-order @app-state))))
   )
 
+(defn menu-item-clicked
+  [menu item]
+
+  ; show modal to customize based on ingredients.  
+  (swap! app-state assoc :customize-menu-item item)
+  )
+
+(defn add-item-clicked
+  [menu item]
+  (swap! app-state dissoc :customize-menu-item)
+  (add-menu-item-to-order item)
+  )
+
+
+(defn login-clicked
+  []
+  ; open a modal to ask for credentials.
+  (auth-api "mgr" "mgrpass")  )
+
+
 (defn menu-ui
   [menu]
   ; tabs with section titles
@@ -237,7 +274,7 @@
   (for [section (:sections menu)]
     [:div (:title section)
       (for [item (:items section)]  
-        [button (:title item) #(add-menu-item-to-order item)]
+        [button (:title item) #(menu-item-clicked menu item)]
           )]))
 
 
@@ -256,6 +293,19 @@
       [:span (str (order-total order))]]])
 
 
+(defn customize-menu-item [menu-item]
+  [:div#product-customization-dialog
+    [:h4 (:title menu-item)]
+    
+    [:p "Ingredients"]
+    [:ul
+      (for [k (:ingredients menu-item)]
+        [:li (:ingredient k) " -- " (:description k)])]
+    
+    [:div.custom-price [:strong "Price:"] (:price menu-item)]    
+    (button "Add to order." #(add-item-clicked nil menu-item))
+    (button "Cancel." #(swap! app-state dissoc :customize-menu-item))])
+
 (defn main-screen []
   [:div
    [:h1 (:shop-name @app-state)]
@@ -267,6 +317,10 @@
    (when-not (nil? (:active-order @app-state))
      [:div
        (menu-ui @menu)
+       (when-let [menu-item (:customize-menu-item @app-state)]
+         [:div
+           [:hr]
+           (customize-menu-item menu-item)])
        [:hr]
        (order-ui (:active-order @app-state))
        [:hr]
@@ -284,6 +338,10 @@
                               
       (button "Pay" #(pay-clicked (:payment-amount @app-state)))
       ]
+      
+     (button "Login." login-clicked)
+     
+     
    ])
 
 

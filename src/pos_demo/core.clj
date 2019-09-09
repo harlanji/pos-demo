@@ -1,7 +1,8 @@
 (ns pos-demo.core
   (:require [ring.middleware.resource :refer [wrap-resource]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
-            [pos-demo.authorize :as authorize]))  
+            [pos-demo.authorize :as authorize]
+            [clojure.data.json :as json]))  
   
 (defn current-date
   []
@@ -13,6 +14,14 @@
     (let [result (authorize/send-payment-request payment-request)]
       (println "Success! Result: " result))))
 
+(def credentials #{{:username "hi" :password "mypass"}
+                   {:username "mgr" :password "mgrpass"}})
+                   
+(def roles {"hi" #{"cashier"}
+            "mgr" #{"manager" "cashier"}})
+
+
+
 (defn api-handler
   [request]
   (println "request query-params keys=" (keys (:query-params request))) 
@@ -20,6 +29,16 @@
         {:status 200
          :content-type "application/json"
          :body (str "{\"msg\": \"Works. " (current-date) "\"}")}
+         
+        (= "/auth" (:uri request))
+        (let [credential (select-keys (:params request) [:username :password])]
+          (if (contains? credentials credential)
+            {:status 200
+             :content-type "application/json"
+             :body (json/write-str {:roles (get roles (:username credential))})}
+            {:status 401
+             :content-type "text/plain"
+             :body "unauthorized."}))
          
         (= "/pay" (:uri request))
         (let [{:keys [amount card-number card-exp]} (:params  request)]
