@@ -147,12 +147,12 @@
 ; UI
 
 (defn button
-  [label on-click & [{:keys [color]}]]
+  [label on-click & [{:keys [color height width]}]]
   [:button {:on-click on-click
             :style {:border "1px solid black"
                    :background-color (or color "silver")
-                   :height "100px"
-                   :width "100px"
+                   :height (or height "100px")
+                   :width (or width "100px")
                    :text-align "center"
                    :vertical-aign "middle" 
                    :margin "3px"
@@ -182,6 +182,7 @@
   [menu item]
   (swap! app-state dissoc :customize-menu-item)
   (add-menu-item-to-order item)
+  (.scrollTo js/window 0 0)
   )
 
 
@@ -189,6 +190,11 @@
   []
   ; open a modal to ask for credentials.
   (auth-api "mgr" "mgrpass")  )
+
+
+(defn cancel-customize-menu-item-clicked []
+  (swap! app-state dissoc :customize-menu-item)
+  (.scrollTo js/window 0 0))
 
 
 (defn menu-ui
@@ -218,19 +224,41 @@
       [:strong "Total Price"]
       [:span (str (order-total order))]]])
 
-
 (defn customize-menu-item [menu-item]
   [:div#product-customization-dialog
     [:h4 (:title menu-item)]
-    
+    [:h5 (-> menu-item
+             :menu-section
+             menu/find-menu-section
+             :title)]
+             
     [:p "Ingredients"]
     [:ul
       (for [k (menu/find-menu-item-ingredients (:id menu-item))]
-        [:li (:ingredient k) " -- " (:description k)])]
+        [:li [:h5 (:ingredient k)]
+             [:p (:description k)]
+             [:div (button "On Side" #(js/alert "Not implemented yet.") {:height "30px"})
+                   (button "Extra" #(js/alert "Not implemented yet.") {:height "30px"})
+                   (button "Skip" #(js/alert "Not implemented yet.") {:height "30px"})]])
+      [:li
+        [:h5 "Something else?"]
+        [:p "Add any ingredient from any item on the menu."] 
+        [:div 
+          
+          (when-let [customize-ingredient (not (:customize-ingredient @app-state))]          
+            (button "Add..." #(swap! app-state assoc :customize-ingredient true) {:height "30px"}))
+            (when-let [customize-ingredient (:customize-ingredient @app-state)]
+              [:div#customize-ingredient
+                [:ul
+                  (for [ingredient (menu/find-all-ingredients 1)]
+                    [:li (button (str(:ingredient ingredient)) #(js/alert "Not implemented yet.") {:height "30px" :color "lime"})])
+                  [:li (button "Cancel." #(swap! app-state dissoc :customize-ingredient) {:height "30px" :color "red"})]]])  
+          ]]]
     
     [:div.custom-price [:strong "Price:"] (:price menu-item)]    
     (button "Add to order." #(add-item-clicked nil menu-item) {:color "aqua"})
-    (button "Cancel." #(swap! app-state dissoc :customize-menu-item) {:color "red"})])
+    (button "Cancel." #(cancel-customize-menu-item-clicked) {:color "red"})
+    ])
 
 (defn main-screen []
   [:div

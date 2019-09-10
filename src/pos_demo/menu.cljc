@@ -100,3 +100,14 @@
   [menu-item-id]
   (filter #(and (instance? MenuItemIngredient %)
                 (= (:menu-item %) menu-item-id)) @menu))
+
+
+
+(defn find-all-ingredients
+  [menu-id]
+  (filter #(and (instance? MenuItemIngredient %)
+                (let [menu-item (find-menu-item (:menu-item %))
+                      section (find-menu-section (:menu-section menu-item))
+                      menu (find-menu (:menu section))]
+                      (= (:id menu) menu-id))
+                ) @menu))
