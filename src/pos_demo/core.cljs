@@ -246,9 +246,10 @@
 ; UI
 
 (defn button
-  [label on-click]
+  [label on-click & [{:keys [color]}]]
   [:button {:on-click on-click
             :style {:border "1px solid black"
+                   :background-color (or color "silver")
                    :height "100px"
                    :width "100px"
                    :text-align "center"
@@ -327,8 +328,8 @@
         [:li (:ingredient k) " -- " (:description k)])]
     
     [:div.custom-price [:strong "Price:"] (:price menu-item)]    
-    (button "Add to order." #(add-item-clicked nil menu-item))
-    (button "Cancel." #(swap! app-state dissoc :customize-menu-item))])
+    (button "Add to order." #(add-item-clicked nil menu-item) {:color "aqua"})
+    (button "Cancel." #(swap! app-state dissoc :customize-menu-item) {:color "red"})])
 
 (defn main-screen []
   [:div
@@ -336,7 +337,7 @@
    
    (when (nil? (:active-order @app-state))
      [:span 
-       (button "New Order" new-order-clicked)
+       (button "New Order" new-order-clicked {:color "aqua"})
        (button "Resume Order" load-order-clicked)])
    (when-not (nil? (:active-order @app-state))
      [:div
@@ -350,7 +351,7 @@
        [:hr]
        [:span
          (button "Save Order" save-order-clicked)
-         (button "Abandon Order" abandon-order-clicked)]
+         (button "Abandon Order" abandon-order-clicked {:color "red"})]
                 
          ])
     (button "Ping API" ping-api-clicked)
@@ -360,10 +361,10 @@
                               :value (:payment-amount @app-state)
                               :on-change #(swap! app-state assoc :payment-amount (-> % .-target .-value))}]
                               
-      (button "Pay" #(pay-clicked (:payment-amount @app-state)))
+      (button "Pay" #(pay-clicked (:payment-amount @app-state)) {:color "lime"})
       ]
       
-     (button "Login." login-clicked)
+     (button "Login." login-clicked {:color "green"})
      
      
    ])
