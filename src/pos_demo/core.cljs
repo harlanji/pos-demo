@@ -41,7 +41,8 @@
 
 (defn new-order
   []
-  (swap! app-state assoc :active-order 1))
+  (swap! app-state assoc :active-order 1)
+  (reset! order/order-store [(order/map->Order {:id 1})]))
 
 (defn abandon-order
   []

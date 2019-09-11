@@ -20,7 +20,7 @@
   [order description])
 
 
-(def order-store (atom [(map->Order {:id 1})]))
+(def order-store (atom []))
 
 
 ; The order is made up of a collection of facts.
