@@ -76,4 +76,3 @@
                             "0.00"
                             item-prices)]
     total-price))
-

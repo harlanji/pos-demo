@@ -145,10 +145,8 @@
 (defn add-menu-item-to-order
   [menu-item-id]
   ;(swap! app-state update-in [:active-order :items] conj (select-keys menu-item [:title :price]))
-  (let [ingredient-mods (if (= 102 menu-item-id)
-                          {"Bread" {:operation :skip}
-                           "Lettuce" {:operation :add}}
-                          {})
+  (let [;menu-item (menu/find-menu-item menu-item-id)
+        ingredient-mods (or (get (@app-state :sides) menu-item-id) {})
         request (order/request-menu-item (:active-order @app-state) menu-item-id ingredient-mods)]
     (order/add-item request))
   (swap! app-state assoc :payment-amount (str (order/order-total (:active-order @app-state)))))
@@ -157,12 +155,14 @@
   [menu item]
 
   ; show modal to customize based on ingredients.  
+  (swap! app-state dissoc :sides)
   (swap! app-state assoc :customize-menu-item item))
 
 (defn add-item-clicked
   [menu item]
-  (swap! app-state dissoc :customize-menu-item)
   (add-menu-item-to-order (:id item))
+  (swap! app-state dissoc :customize-menu-item)
+  (swap! app-state dissoc :sides)
   (.scrollTo js/window 0 0))
 
 (defn login-clicked
@@ -203,6 +203,10 @@
     [:strong "Total Price"]
     [:span (str (order/order-total order))]]])
 
+(defn custom-ingredient-modifier-clicked
+  [menu-item ingredient operation]
+  (swap! app-state assoc-in [:sides (:id menu-item) (:ingredient ingredient)] {:operation operation}))
+
 (defn customize-menu-item [menu-item]
   [:div#product-customization-dialog
    [:h4 (:title menu-item)]
@@ -216,9 +220,12 @@
     (for [k (menu/find-menu-item-ingredients (:id menu-item))]
       [:li [:h5 (:ingredient k)]
        [:p (:description k)]
-       [:div (button "On Side" #(js/alert "Not implemented yet.") {:height "30px"})
-        (button "Extra" #(js/alert "Not implemented yet.") {:height "30px"})
-        (button "Skip" #(js/alert "Not implemented yet.") {:height "30px"})]])
+       [:div (button "Double" #(custom-ingredient-modifier-clicked menu-item k :double) {:height "30px"})
+       (button "On Side" #(custom-ingredient-modifier-clicked menu-item k :on-side) {:height "30px"})
+        (button "Extra Side" #(custom-ingredient-modifier-clicked menu-item k :extra-side) {:height "30px"})
+        (button "Double On Side" #(custom-ingredient-modifier-clicked menu-item k :double-side) {:height "30px"})
+        (button "Skip" #(custom-ingredient-modifier-clicked menu-item k :skip) {:height "30px"})
+        (button "Normal" #(custom-ingredient-modifier-clicked menu-item k :normal) {:height "30px"})]])
     [:li
      [:h5 "Something else?"]
      [:p "Add any ingredient from any item on the menu."]
