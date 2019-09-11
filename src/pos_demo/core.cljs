@@ -5,7 +5,12 @@
               [cljs-http.client :as http]
               [cljs.core.async :as async]
               [decimal.core :as decimal]
-              [pos-demo.menu :as menu]))
+              [pos-demo.menu :as menu]
+              [pos-demo.order :as order]))
+
+(cljs.reader/register-tag-parser! 'pos-demo.order.Order order/map->Order)
+(cljs.reader/register-tag-parser! 'pos-demo.order.OrderItem order/map->OrderItem)
+(cljs.reader/register-tag-parser! 'pos-demo.order.OrderItemIngredient order/map->OrderItemIngredient)
 
 (enable-console-print!)
 
@@ -19,31 +24,6 @@
 
 
 ; rules translate requests into items. Some requests will have no effect on the order.
-
-(defrecord OrderItemIngredientModification
-  [ingredient operation])
-
-(defrecord OrderItemOption
-  [])
-
-(defrecord OrderItem
-  [order menu-item ingredient-mods options])
-
-(defrecord Order
-  [id])  
-
-
-(defrecord OrderRequest
-  [order description])
-  
-  
-
-(defn order-total [order]
-  (let [item-prices (map :price (:items order))
-        total-price (reduce decimal/+
-                            "0.00"
-                            item-prices)]
-    total-price))
 
 ;(defrule add-any-requested-item
 ;  [OrderRequest order-request ()]
@@ -61,24 +41,29 @@
 
 (defn new-order
   []
-  (swap! app-state assoc :active-order {:id (str (current-date)) :items []}))
+  (swap! app-state assoc :active-order 1))
 
 (defn abandon-order
   []
   (swap! app-state assoc :active-order nil)
-  (swap! app-state assoc :payment-amount "0.00"))
+  (swap! app-state assoc :payment-amount "0.00")
+  (reset! order/order-store []))
+
 
 (defn save-order
   []
-  (js/prompt "Save the text; it can be loaded, later." (pr-str (:active-order @app-state))))
+  (js/prompt "Save the text; it can be loaded, later." (pr-str @pos-demo.order/order-store)))
+
+
 
 (defn load-order
   []
   (let [order-edn (js/prompt "Paste the saved text.")]
-    (when-let [order (read-string order-edn)]
-      (when (map? order)
-        (swap! app-state assoc :active-order order)
-        (swap! app-state assoc :payment-amount (str (order-total order)))))
+    (when-let [order-store (read-string order-edn)]
+      (when order-store
+        (reset! order/order-store order-store)
+        (swap! app-state assoc :active-order 1)
+        (swap! app-state assoc :payment-amount (str (order/order-total 1	)))))
     ))
 
 (defn ping-api
@@ -166,9 +151,15 @@
   )
 
 (defn add-menu-item-to-order
-  [menu-item]
-  (swap! app-state update-in [:active-order :items] conj (select-keys menu-item [:title :price]))
-  (swap! app-state assoc :payment-amount (str (order-total (:active-order @app-state))))
+  [menu-item-id]
+  ;(swap! app-state update-in [:active-order :items] conj (select-keys menu-item [:title :price]))
+  (let [ingredient-mods (if (= 102 menu-item-id) 
+                            {"Bread" {:operation :skip}
+                             "Lettuce" {:operation :add}}
+                             {})
+        request (order/request-menu-item (:active-order @app-state) menu-item-id ingredient-mods)]
+    (order/add-item request))
+  (swap! app-state assoc :payment-amount (str (order/order-total (:active-order @app-state))))
   )
 
 (defn menu-item-clicked
@@ -181,7 +172,7 @@
 (defn add-item-clicked
   [menu item]
   (swap! app-state dissoc :customize-menu-item)
-  (add-menu-item-to-order item)
+  (add-menu-item-to-order (:id item))
   (.scrollTo js/window 0 0)
   )
 
@@ -216,13 +207,21 @@
   
   [:div 
   [:ul 
-    (for [item (:items order)]
-      [:li (:title item) [:span.price (:price item)]]
+    (for [item (order/order-items order)]
+      [:li (:title item) [:span.price (:price item)]
+        [:ul
+          (let [item-ingredients (order/item-ingredients (:id item))
+                item-ingredients (filter #(not= :normal (:operation %)) item-ingredients)
+                                     
+                                     ]
+          (for [ingredient item-ingredients]
+            [:li (:operation ingredient) (:ingredient ingredient)]))]      
+      ]
       )]
   
     [:div
       [:strong "Total Price"]
-      [:span (str (order-total order))]]])
+      [:span (str (order/order-total order))]]])
 
 (defn customize-menu-item [menu-item]
   [:div#product-customization-dialog
